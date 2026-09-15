@@ -1,29 +1,26 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-
-export async function GET() {
-  const { data, error } = await supabaseAdmin
-    .from("usuarios")
-    .select("id, nome, usuario, papel")
-    .order("criado_em", { ascending: true });
-  if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
-  return NextResponse.json({ usuarios: data });
-}
-
+ 
 export async function POST(req) {
-  const body = await req.json();
-  const { nome, usuario, senha, papel } = body;
-  if (!nome || !usuario || !senha) {
-    return NextResponse.json({ erro: "Preencha nome, usuário e senha." }, { status: 400 });
-  }
+  const { usuario, senha } = await req.json();
+ 
   const { data, error } = await supabaseAdmin
     .from("usuarios")
-    .insert({ nome, usuario, senha, papel: papel === "admin" ? "admin" : "funcionario" })
-    .select("id, nome, usuario, papel")
-    .single();
-  if (error) {
-    const msg = error.code === "23505" ? "Já existe um usuário com esse login." : error.message;
-    return NextResponse.json({ erro: msg }, { status: 400 });
+    .select("id, nome, usuario, senha, papel")
+    .ilike("usuario", usuario)
+    .maybeSingle();
+ 
+  console.log("DEBUG login — usuario recebido:", JSON.stringify(usuario));
+  console.log("DEBUG login — erro do supabase:", error ? JSON.stringify(error) : "nenhum");
+  console.log("DEBUG login — encontrou registro?:", data ? "sim" : "não");
+  if (data) {
+    console.log("DEBUG login — senha bate?:", data.senha === senha, "| senha banco:", JSON.stringify(data.senha), "| senha enviada:", JSON.stringify(senha));
   }
-  return NextResponse.json({ usuario: data });
+ 
+  if (error || !data || data.senha !== senha) {
+    return NextResponse.json({ erro: "Usuário ou senha incorretos." }, { status: 401 });
+  }
+ 
+  const { senha: _s, ...usuarioSeguro } = data;
+  return NextResponse.json({ usuario: usuarioSeguro });
 }
