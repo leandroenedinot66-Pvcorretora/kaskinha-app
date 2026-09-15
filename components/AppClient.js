@@ -46,6 +46,23 @@ export default function AppClient() {
     if (currentUser.papel === "admin") carregarUsuarios();
   }, [currentUser, carregarProdutos, carregarCaixas, carregarVendas, carregarUsuarios]);
 
+  // Mantém o status do caixa em dia entre aparelhos diferentes: reconsulta
+  // periodicamente e sempre que a pessoa volta pra essa aba/janela.
+  useEffect(() => {
+    if (!currentUser) return;
+    const intervalo = setInterval(() => {
+      carregarCaixas();
+      carregarVendas();
+    }, 15000);
+    const aoFocar = () => { carregarCaixas(); carregarVendas(); carregarProdutos(); };
+    window.addEventListener("focus", aoFocar);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) aoFocar(); });
+    return () => {
+      clearInterval(intervalo);
+      window.removeEventListener("focus", aoFocar);
+    };
+  }, [currentUser, carregarCaixas, carregarVendas, carregarProdutos]);
+
   const login = (user) => {
     setCurrentUser(user);
     localStorage.setItem("kaskinha_user", JSON.stringify(user));
@@ -93,7 +110,7 @@ export default function AppClient() {
         )}
         <nav className="flex flex-col gap-1 flex-1">
           {tabs.map((t) => (
-            <button key={t.id} onClick={() => setTab(t.id)}
+            <button key={t.id} onClick={() => { setTab(t.id); carregarCaixas(); carregarVendas(); }}
               className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition text-left"
               style={tab === t.id ? { background: C.primarySoft, color: C.primaryDark } : { color: C.inkSoft }}>
               <t.icon size={17} /> {t.label}
@@ -152,7 +169,7 @@ export default function AppClient() {
 
       <div style={{ background: C.surface, borderTop: `1px solid ${C.border}` }} className="flex md:hidden fixed bottom-0 left-0 right-0 justify-around p-2">
         {tabs.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)}
+          <button key={t.id} onClick={() => { setTab(t.id); carregarCaixas(); carregarVendas(); }}
             className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] font-medium"
             style={tab === t.id ? { color: C.primaryDark } : { color: C.inkSoft }}>
             <t.icon size={18} /> {t.label}
@@ -162,3 +179,4 @@ export default function AppClient() {
     </div>
   );
 }
+
