@@ -9,6 +9,7 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
   const [valorInicial, setValorInicial] = useState("");
   const [valorFechamento, setValorFechamento] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState("");
 
   const vendasDoCaixa = caixaAberto ? vendas.filter((v) => v.caixa_id === caixaAberto.id) : [];
   const totalVendasCaixa = vendasDoCaixa.reduce((s, v) => s + v.total, 0);
@@ -20,26 +21,36 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
 
   const abrir = async () => {
     setEnviando(true);
+    setErro("");
     try {
-      await fetch("/api/caixas/abrir", {
+      const res = await fetch("/api/caixas/abrir", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ valorInicial: Number(valorInicial) || 0, abertoPor: nomeUsuario }),
       });
+      const data = await res.json();
+      if (!res.ok) { setErro(data.erro || "Não foi possível abrir o caixa."); return; }
       setValorInicial("");
       onAtualizar();
+    } catch {
+      setErro("Erro de conexão. Tente novamente.");
     } finally {
       setEnviando(false);
     }
   };
   const fechar = async () => {
     setEnviando(true);
+    setErro("");
     try {
-      await fetch("/api/caixas/fechar", {
+      const res = await fetch("/api/caixas/fechar", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ caixaId: caixaAberto.id, valorInformado: Number(valorFechamento) || 0, fechadoPor: nomeUsuario }),
       });
+      const data = await res.json();
+      if (!res.ok) { setErro(data.erro || "Não foi possível fechar o caixa."); return; }
       setValorFechamento("");
       onAtualizar();
+    } catch {
+      setErro("Erro de conexão. Tente novamente.");
     } finally {
       setEnviando(false);
     }
@@ -58,6 +69,7 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
             className="w-full text-white rounded-xl py-2.5 text-sm font-medium disabled:opacity-60">
             {enviando ? "Abrindo..." : "Abrir caixa"}
           </button>
+          {erro && <p className="text-sm mt-2" style={{ color: C.berry }}>{erro}</p>}
         </div>
       ) : (
         <div style={{ background: C.surface, border: `1px solid ${C.border}` }} className="rounded-xl p-5 max-w-sm">
@@ -81,6 +93,7 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
             className="w-full text-white rounded-xl py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 disabled:opacity-60">
             <ArrowDownCircle size={16} /> {enviando ? "Fechando..." : "Fechar caixa"}
           </button>
+          {erro && <p className="text-sm mt-2" style={{ color: C.berry }}>{erro}</p>}
         </div>
       )}
 
