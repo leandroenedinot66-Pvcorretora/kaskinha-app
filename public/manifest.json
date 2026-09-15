@@ -1,0 +1,13 @@
+{
+  "name": "Kaskinha - Sorvetes & Açaí",
+  "short_name": "Kaskinha",
+  "description": "Sistema de vendas, caixa e estoque da Kaskinha",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF2E6",
+  "theme_color": "#CE3C4B",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
