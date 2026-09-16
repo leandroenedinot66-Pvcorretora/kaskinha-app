@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST(req) {
-  const { usuario, senha } = await req.json();
+  const body = await req.json();
+  const usuario = (body.usuario || "").trim();
+  const senha = (body.senha || "").trim();
 
   const { data, error } = await supabaseAdmin
     .from("usuarios")

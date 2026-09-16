@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, Trash2 } from "lucide-react";
 import { C } from "@/lib/theme";
 
 const money = (n) => (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -10,6 +10,7 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
   const [valorFechamento, setValorFechamento] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
+  const [confirmarExclusao, setConfirmarExclusao] = useState(null);
 
   const vendasDoCaixa = caixaAberto ? vendas.filter((v) => v.caixa_id === caixaAberto.id) : [];
   const totalVendasCaixa = vendasDoCaixa.reduce((s, v) => s + v.total, 0);
@@ -56,6 +57,21 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
     }
   };
 
+  const excluirCaixa = async (id) => {
+    setEnviando(true);
+    setErro("");
+    try {
+      const res = await fetch(`/api/caixas/${id}`, { method: "DELETE" });
+      if (!res.ok) { const d = await res.json(); setErro(d.erro || "Não foi possível excluir o caixa."); return; }
+      setConfirmarExclusao(null);
+      onAtualizar();
+    } catch {
+      setErro("Erro de conexão. Tente novamente.");
+    } finally {
+      setEnviando(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {!caixaAberto ? (
@@ -94,6 +110,19 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
             <ArrowDownCircle size={16} /> {enviando ? "Fechando..." : "Fechar caixa"}
           </button>
           {erro && <p className="text-sm mt-2" style={{ color: C.berry }}>{erro}</p>}
+          {isAdmin && (
+            confirmarExclusao === caixaAberto.id ? (
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-xs" style={{ color: C.inkSoft }}>Excluir este caixa sem fechar? Isso não some com as vendas já registradas.</span>
+                <button onClick={() => excluirCaixa(caixaAberto.id)} className="text-xs font-medium shrink-0" style={{ color: C.berry }}>Confirmar</button>
+                <button onClick={() => setConfirmarExclusao(null)} className="text-xs shrink-0" style={{ color: C.inkSoft }}>Cancelar</button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmarExclusao(caixaAberto.id)} className="text-xs mt-3 flex items-center gap-1" style={{ color: C.inkSoft }}>
+                <Trash2 size={12} /> Excluir caixa (admin)
+              </button>
+            )
+          )}
         </div>
       )}
 
@@ -106,14 +135,21 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
               const vs = vendas.filter((v) => v.caixa_id === c.id);
               const tv = vs.reduce((s, v) => s + v.total, 0);
               return (
-                <div key={c.id} style={{ borderTop: `1px solid ${C.border}` }} className="pt-2 text-sm flex items-center justify-between">
-                  <div>
+                <div key={c.id} style={{ borderTop: `1px solid ${C.border}` }} className="pt-2 text-sm flex items-center justify-between gap-2">
+                  <div className="min-w-0">
                     <p style={{ color: C.ink }}>{new Date(c.aberto_em).toLocaleDateString("pt-BR")} — {c.aberto_por}</p>
                     <p style={{ color: C.inkSoft }} className="text-xs">
                       {c.status === "aberto" ? "em aberto" : `fechado às ${new Date(c.fechado_em).toLocaleTimeString("pt-BR")}`} · {vs.length} vendas
                     </p>
                   </div>
-                  <span className="font-medium" style={{ color: C.primaryDark }}>{money(tv)}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-medium" style={{ color: C.primaryDark }}>{money(tv)}</span>
+                    {confirmarExclusao === c.id ? (
+                      <button onClick={() => excluirCaixa(c.id)} className="text-xs font-medium" style={{ color: C.berry }}>Confirmar?</button>
+                    ) : (
+                      <button onClick={() => setConfirmarExclusao(c.id)} style={{ color: C.inkSoft }}><Trash2 size={14} /></button>
+                    )}
+                  </div>
                 </div>
               );
             })}

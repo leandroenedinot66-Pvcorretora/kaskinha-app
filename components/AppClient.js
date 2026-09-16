@@ -160,7 +160,7 @@ export default function AppClient() {
           <Estoque produtos={produtos} onAtualizar={carregarProdutos} />
         )}
         {tab === "relatorios" && isAdmin && (
-          <Relatorios produtos={produtos} vendasTotalHistorico={totalHistorico} />
+          <Relatorios produtos={produtos} vendasTotalHistorico={totalHistorico} onAtualizar={carregarVendas} />
         )}
         {tab === "usuarios" && isAdmin && (
           <Usuarios usuarios={usuarios} currentUser={currentUser} onAtualizar={carregarUsuarios} />
@@ -179,4 +179,3 @@ export default function AppClient() {
     </div>
   );
 }
-
