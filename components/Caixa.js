@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ArrowUpCircle, ArrowDownCircle, Trash2 } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, Trash2, RefreshCw } from "lucide-react";
 import { C } from "@/lib/theme";
 
 const money = (n) => (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -29,7 +29,7 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
         body: JSON.stringify({ valorInicial: Number(valorInicial) || 0, abertoPor: nomeUsuario }),
       });
       const data = await res.json();
-      if (!res.ok) { setErro(data.erro || "Não foi possível abrir o caixa."); return; }
+      if (!res.ok) { setErro(data.erro || "Não foi possível abrir o caixa."); onAtualizar(); return; }
       setValorInicial("");
       onAtualizar();
     } catch {
@@ -47,7 +47,7 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
         body: JSON.stringify({ caixaId: caixaAberto.id, valorInformado: Number(valorFechamento) || 0, fechadoPor: nomeUsuario }),
       });
       const data = await res.json();
-      if (!res.ok) { setErro(data.erro || "Não foi possível fechar o caixa."); return; }
+      if (!res.ok) { setErro(data.erro || "Não foi possível fechar o caixa."); onAtualizar(); return; }
       setValorFechamento("");
       onAtualizar();
     } catch {
@@ -62,7 +62,7 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
     setErro("");
     try {
       const res = await fetch(`/api/caixas/${id}`, { method: "DELETE" });
-      if (!res.ok) { const d = await res.json(); setErro(d.erro || "Não foi possível excluir o caixa."); return; }
+      if (!res.ok) { const d = await res.json(); setErro(d.erro || "Não foi possível excluir o caixa."); onAtualizar(); return; }
       setConfirmarExclusao(null);
       onAtualizar();
     } catch {
@@ -74,6 +74,9 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
 
   return (
     <div className="space-y-4">
+      <button onClick={onAtualizar} className="text-xs flex items-center gap-1.5 font-medium" style={{ color: C.inkSoft }}>
+        <RefreshCw size={13} /> Atualizar agora
+      </button>
       {!caixaAberto ? (
         <div style={{ background: C.surface, border: `1px solid ${C.border}` }} className="rounded-xl p-5 max-w-sm">
           <h3 className="fnt-display font-semibold mb-3" style={{ color: C.ink }}>Abrir caixa</h3>

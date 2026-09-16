@@ -13,8 +13,9 @@ export async function PUT(req, { params }) {
   if (body.imagem !== undefined) campos.imagem = body.imagem;
 
   const { data, error } = await supabaseAdmin
-    .from("produtos").update(campos).eq("id", params.id).select("*").single();
+    .from("produtos").update(campos).eq("id", params.id).select("*").maybeSingle();
   if (error) return NextResponse.json({ erro: error.message }, { status: 500 });
+  if (!data) return NextResponse.json({ erro: "Esse produto não existe mais (pode ter sido excluído em outro aparelho)." }, { status: 404 });
   return NextResponse.json({ produto: data });
 }
 
