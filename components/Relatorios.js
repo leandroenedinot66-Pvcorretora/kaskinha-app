@@ -17,7 +17,7 @@ export default function Relatorios({ produtos, vendasTotalHistorico, onAtualizar
 
   const carregarVendasPeriodo = () => {
     setCarregando(true);
-    return fetch(`/api/vendas?inicio=${dataInicio}&fim=${dataFim}`)
+    return fetch(`/api/vendas?inicio=${dataInicio}&fim=${dataFim}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setVendasPeriodo(d.vendas || []))
       .finally(() => setCarregando(false));

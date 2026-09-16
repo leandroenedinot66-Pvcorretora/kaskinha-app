@@ -26,16 +26,16 @@ export default function AppClient() {
   }, []);
 
   const carregarProdutos = useCallback(async () => {
-    const r = await fetch("/api/produtos"); const d = await r.json(); setProdutos(d.produtos || []);
+    const r = await fetch("/api/produtos", { cache: "no-store" }); const d = await r.json(); setProdutos(d.produtos || []);
   }, []);
   const carregarCaixas = useCallback(async () => {
-    const r = await fetch("/api/caixas"); const d = await r.json(); setCaixas(d.caixas || []);
+    const r = await fetch("/api/caixas", { cache: "no-store" }); const d = await r.json(); setCaixas(d.caixas || []);
   }, []);
   const carregarVendas = useCallback(async () => {
-    const r = await fetch("/api/vendas"); const d = await r.json(); setVendas(d.vendas || []);
+    const r = await fetch("/api/vendas", { cache: "no-store" }); const d = await r.json(); setVendas(d.vendas || []);
   }, []);
   const carregarUsuarios = useCallback(async () => {
-    const r = await fetch("/api/usuarios"); const d = await r.json(); setUsuarios(d.usuarios || []);
+    const r = await fetch("/api/usuarios", { cache: "no-store" }); const d = await r.json(); setUsuarios(d.usuarios || []);
   }, []);
 
   useEffect(() => {
