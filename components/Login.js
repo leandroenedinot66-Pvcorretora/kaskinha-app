@@ -74,10 +74,6 @@ export default function Login({ onLogin }) {
             {carregando ? "Entrando..." : "Entrar"}
           </button>
         </form>
-
-        <p className="text-xs text-center mt-5" style={{ color: C.inkSoft }}>
-          Acesso inicial: <b>admin</b> / <b>admin123</b> — troque a senha depois de entrar.
-        </p>
       </div>
     </div>
   );

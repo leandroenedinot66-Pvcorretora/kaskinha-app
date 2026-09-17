@@ -22,7 +22,9 @@ export default function Usuarios({ usuarios, currentUser, onAtualizar }) {
   };
   const excluir = async (id) => {
     if (id === currentUser.id) return;
-    await fetch(`/api/usuarios/${id}`, { method: "DELETE" });
+    setErro("");
+    const res = await fetch(`/api/usuarios/${id}`, { method: "DELETE" });
+    if (!res.ok) { const d = await res.json(); setErro(d.erro || "Não foi possível excluir."); setConfirmarExclusao(null); return; }
     setConfirmarExclusao(null);
     onAtualizar();
   };

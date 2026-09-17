@@ -14,8 +14,12 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
 
   const vendasDoCaixa = caixaAberto ? vendas.filter((v) => v.caixa_id === caixaAberto.id) : [];
   const totalVendasCaixa = vendasDoCaixa.reduce((s, v) => s + v.total, 0);
+  const porForma = vendasDoCaixa.reduce((m, v) => {
+    m[v.forma_pagamento] = (m[v.forma_pagamento] || 0) + v.total;
+    return m;
+  }, {});
   const dinheiroEsperado = caixaAberto
-    ? Number(caixaAberto.valor_inicial) + vendasDoCaixa.filter((v) => v.forma_pagamento === "Dinheiro").reduce((s, v) => s + v.total, 0)
+    ? Number(caixaAberto.valor_inicial) + (porForma["Dinheiro"] || 0)
     : 0;
 
   const historico = [...caixas].sort((a, b) => new Date(b.aberto_em) - new Date(a.aberto_em));
@@ -102,7 +106,17 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
             <div className="flex justify-between"><span style={{ color: C.inkSoft }}>Valor inicial</span><span style={{ color: C.ink }}>{money(caixaAberto.valor_inicial)}</span></div>
             <div className="flex justify-between"><span style={{ color: C.inkSoft }}>Vendas no caixa</span><span style={{ color: C.ink }}>{vendasDoCaixa.length}</span></div>
             <div className="flex justify-between"><span style={{ color: C.inkSoft }}>Total vendido</span><span style={{ color: C.ink }}>{money(totalVendasCaixa)}</span></div>
-            <div className="flex justify-between font-medium"><span style={{ color: C.inkSoft }}>Dinheiro esperado</span><span style={{ color: C.primaryDark }}>{money(dinheiroEsperado)}</span></div>
+          </div>
+          {Object.keys(porForma).length > 0 && (
+            <div style={{ background: C.bg, border: `1px solid ${C.border}` }} className="rounded-lg p-3 mb-4 space-y-1 text-sm">
+              <p className="text-xs font-medium mb-1" style={{ color: C.inkSoft }}>Recebido por forma de pagamento</p>
+              {["Dinheiro", "Pix", "Cartão Crédito", "Cartão Débito"].filter((f) => porForma[f]).map((f) => (
+                <div key={f} className="flex justify-between"><span style={{ color: C.inkSoft }}>{f}</span><span style={{ color: C.ink }}>{money(porForma[f])}</span></div>
+              ))}
+            </div>
+          )}
+          <div className="space-y-1 text-sm mb-4">
+            <div className="flex justify-between font-medium"><span style={{ color: C.inkSoft }}>Dinheiro esperado na gaveta</span><span style={{ color: C.primaryDark }}>{money(dinheiroEsperado)}</span></div>
           </div>
           <label className="text-xs" style={{ color: C.inkSoft }}>Valor contado ao fechar</label>
           <input type="number" value={valorFechamento} onChange={(e) => setValorFechamento(e.target.value)}

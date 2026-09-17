@@ -11,22 +11,32 @@ export default function Relatorios({ produtos, vendasTotalHistorico, onAtualizar
   const [dataInicio, setDataInicio] = useState(hoje);
   const [dataFim, setDataFim] = useState(hoje);
   const [atalhoAtivo, setAtalhoAtivo] = useState("Hoje");
-  const [vendasPeriodo, setVendasPeriodo] = useState([]);
+  const [todasVendas, setTodasVendas] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [confirmarExclusao, setConfirmarExclusao] = useState(null);
 
   const carregarVendasPeriodo = () => {
     setCarregando(true);
-    return fetch(`/api/vendas?inicio=${dataInicio}&fim=${dataFim}`, { cache: "no-store" })
+    return fetch("/api/vendas", { cache: "no-store" })
       .then((r) => r.json())
-      .then((d) => setVendasPeriodo(d.vendas || []))
+      .then((d) => setTodasVendas(d.vendas || []))
       .finally(() => setCarregando(false));
   };
 
   useEffect(() => {
     carregarVendasPeriodo();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataInicio, dataFim]);
+  }, []);
+
+  // Filtra pelo horário local do navegador (o do Brasil), em vez de mandar
+  // a data pro servidor — evita qualquer confusão de fuso horário.
+  const vendasPeriodo = useMemo(() => {
+    const ini = new Date(`${dataInicio}T00:00:00`);
+    const fimD = new Date(`${dataFim}T23:59:59.999`);
+    return todasVendas.filter((v) => {
+      const d = new Date(v.data);
+      return d >= ini && d <= fimD;
+    });
+  }, [todasVendas, dataInicio, dataFim]);
 
   const excluirVenda = async (id) => {
     const res = await fetch(`/api/vendas/${id}`, { method: "DELETE" });
