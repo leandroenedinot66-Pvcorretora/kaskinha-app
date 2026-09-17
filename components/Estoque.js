@@ -42,10 +42,33 @@ export default function Estoque({ produtos, onAtualizar }) {
     setNovo({ nome: "", categoria: CATEGORIAS[0], unidade: "un", preco: "", estoque: "", estoqueMin: "", imagem: null });
     onAtualizar();
   };
+  const [enviandoFoto, setEnviandoFoto] = useState(false);
+  const [erroFoto, setErroFoto] = useState("");
+
+  const enviarFoto = async (file) => {
+    const dataUrl = await resizeImageFile(file);
+    setEnviandoFoto(true);
+    setErroFoto("");
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setErroFoto(data.erro || "Não foi possível enviar a foto."); return null; }
+      return data.url;
+    } catch {
+      setErroFoto("Erro de conexão ao enviar a foto.");
+      return null;
+    } finally {
+      setEnviandoFoto(false);
+    }
+  };
+
   const escolherImagemNovo = async (file) => {
     if (!file) return;
-    const dataUrl = await resizeImageFile(file);
-    setNovo((n) => ({ ...n, imagem: dataUrl }));
+    const url = await enviarFoto(file);
+    if (url) setNovo((n) => ({ ...n, imagem: url }));
   };
   const atualizarCampo = async (id, campo, valor) => {
     await fetch(`/api/produtos/${id}`, {
@@ -55,10 +78,11 @@ export default function Estoque({ produtos, onAtualizar }) {
   };
   const escolherImagemExistente = async (id, file) => {
     if (!file) return;
-    const dataUrl = await resizeImageFile(file);
+    const url = await enviarFoto(file);
+    if (!url) return;
     await fetch(`/api/produtos/${id}`, {
       method: "PUT", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imagem: dataUrl }),
+      body: JSON.stringify({ imagem: url }),
     });
     onAtualizar();
   };
@@ -77,10 +101,11 @@ export default function Estoque({ produtos, onAtualizar }) {
             {novo.imagem ? <img src={novo.imagem} alt="" className="w-full h-full object-cover" /> : <Package size={20} color={C.inkSoft} />}
           </div>
           <label style={{ color: C.primaryDark, border: `1px solid ${C.border}` }} className="text-xs px-3 py-1.5 rounded-lg font-medium cursor-pointer flex items-center gap-1.5">
-            <ImagePlus size={14} /> Escolher foto
-            <input type="file" accept="image/*" className="hidden" onChange={(e) => escolherImagemNovo(e.target.files?.[0])} />
+            <ImagePlus size={14} /> {enviandoFoto ? "Enviando..." : "Escolher foto"}
+            <input type="file" accept="image/*" className="hidden" disabled={enviandoFoto} onChange={(e) => escolherImagemNovo(e.target.files?.[0])} />
           </label>
         </div>
+        {erroFoto && <p className="text-xs mb-3" style={{ color: C.berry }}>{erroFoto}</p>}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
           <input placeholder="Nome" value={novo.nome} onChange={(e) => setNovo({ ...novo, nome: e.target.value })}
             className="col-span-2 md:col-span-1 px-3 py-2 rounded-lg text-sm outline-none" style={{ border: `1px solid ${C.border}`, color: C.ink }} />
