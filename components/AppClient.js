@@ -18,6 +18,7 @@ export default function AppClient() {
   const [caixas, setCaixas] = useState([]);
   const [vendas, setVendas] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
+  const [movimentos, setMovimentos] = useState([]);
 
   useEffect(() => {
     const salvo = typeof window !== "undefined" && localStorage.getItem("kaskinha_user");
@@ -37,14 +38,18 @@ export default function AppClient() {
   const carregarUsuarios = useCallback(async () => {
     const r = await fetch("/api/usuarios", { cache: "no-store" }); const d = await r.json(); setUsuarios(d.usuarios || []);
   }, []);
+  const carregarMovimentos = useCallback(async () => {
+    const r = await fetch("/api/caixas/movimento", { cache: "no-store" }); const d = await r.json(); setMovimentos(d.movimentos || []);
+  }, []);
 
   useEffect(() => {
     if (!currentUser) return;
     carregarProdutos();
     carregarCaixas();
     carregarVendas();
+    carregarMovimentos();
     if (currentUser.papel === "admin") carregarUsuarios();
-  }, [currentUser, carregarProdutos, carregarCaixas, carregarVendas, carregarUsuarios]);
+  }, [currentUser, carregarProdutos, carregarCaixas, carregarVendas, carregarMovimentos, carregarUsuarios]);
 
   // Mantém o status do caixa em dia entre aparelhos diferentes: reconsulta
   // periodicamente e sempre que a pessoa volta pra essa aba/janela.
@@ -53,15 +58,16 @@ export default function AppClient() {
     const intervalo = setInterval(() => {
       carregarCaixas();
       carregarVendas();
+      carregarMovimentos();
     }, 15000);
-    const aoFocar = () => { carregarCaixas(); carregarVendas(); carregarProdutos(); };
+    const aoFocar = () => { carregarCaixas(); carregarVendas(); carregarProdutos(); carregarMovimentos(); };
     window.addEventListener("focus", aoFocar);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) aoFocar(); });
     return () => {
       clearInterval(intervalo);
       window.removeEventListener("focus", aoFocar);
     };
-  }, [currentUser, carregarCaixas, carregarVendas, carregarProdutos]);
+  }, [currentUser, carregarCaixas, carregarVendas, carregarProdutos, carregarMovimentos]);
 
   const login = (user) => {
     setCurrentUser(user);
@@ -110,7 +116,7 @@ export default function AppClient() {
         )}
         <nav className="flex flex-col gap-1 flex-1">
           {tabs.map((t) => (
-            <button key={t.id} onClick={() => { setTab(t.id); carregarCaixas(); carregarVendas(); }}
+            <button key={t.id} onClick={() => { setTab(t.id); carregarCaixas(); carregarVendas(); carregarMovimentos(); }}
               className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition text-left"
               style={tab === t.id ? { background: C.primarySoft, color: C.primaryDark } : { color: C.inkSoft }}>
               <t.icon size={17} /> {t.label}
@@ -153,8 +159,9 @@ export default function AppClient() {
             onVendaFinalizada={() => { carregarProdutos(); carregarVendas(); }} />
         )}
         {tab === "caixa" && (
-          <Caixa isAdmin={isAdmin} caixaAberto={caixaAberto} caixas={caixas} vendas={vendas} nomeUsuario={currentUser.nome}
-            onAtualizar={() => { carregarCaixas(); carregarVendas(); }} />
+          <Caixa isAdmin={isAdmin} caixaAberto={caixaAberto} caixas={caixas} vendas={vendas}
+            movimentos={movimentos} nomeUsuario={currentUser.nome} usuarioLogin={currentUser.usuario}
+            onAtualizar={() => { carregarCaixas(); carregarVendas(); carregarMovimentos(); }} />
         )}
         {tab === "estoque" && isAdmin && (
           <Estoque produtos={produtos} onAtualizar={carregarProdutos} />
@@ -169,7 +176,7 @@ export default function AppClient() {
 
       <div style={{ background: C.surface, borderTop: `1px solid ${C.border}` }} className="flex md:hidden fixed bottom-0 left-0 right-0 justify-around p-2">
         {tabs.map((t) => (
-          <button key={t.id} onClick={() => { setTab(t.id); carregarCaixas(); carregarVendas(); }}
+          <button key={t.id} onClick={() => { setTab(t.id); carregarCaixas(); carregarVendas(); carregarMovimentos(); }}
             className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] font-medium"
             style={tab === t.id ? { color: C.primaryDark } : { color: C.inkSoft }}>
             <t.icon size={18} /> {t.label}

@@ -52,6 +52,16 @@ create table if not exists push_subscriptions (
   criado_em timestamptz not null default now()
 );
 
+create table if not exists movimentos_caixa (
+  id uuid primary key default gen_random_uuid(),
+  caixa_id uuid references caixas(id) not null,
+  tipo text not null check (tipo in ('sangria', 'reforco')),
+  valor numeric not null,
+  motivo text,
+  feito_por text not null,
+  data timestamptz not null default now()
+);
+
 -- usuário admin inicial (login: admin / senha: admin123 — troque depois de entrar!)
 insert into usuarios (nome, usuario, senha, papel)
 values ('Administrador', 'admin', 'admin123', 'admin')
@@ -66,3 +76,4 @@ alter table produtos enable row level security;
 alter table caixas enable row level security;
 alter table vendas enable row level security;
 alter table push_subscriptions enable row level security;
+alter table movimentos_caixa enable row level security;

@@ -1,16 +1,21 @@
 "use client";
 import { useState } from "react";
-import { ArrowUpCircle, ArrowDownCircle, Trash2, RefreshCw } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, Trash2, RefreshCw, Minus, Plus, Lock } from "lucide-react";
 import { C } from "@/lib/theme";
 
 const money = (n) => (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuario, onAtualizar }) {
+export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, movimentos, nomeUsuario, usuarioLogin, onAtualizar }) {
   const [valorInicial, setValorInicial] = useState("");
   const [valorFechamento, setValorFechamento] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
   const [confirmarExclusao, setConfirmarExclusao] = useState(null);
+  const [formaMovimento, setFormaMovimento] = useState(null); // "sangria" | "reforco" | null
+  const [movValor, setMovValor] = useState("");
+  const [movMotivo, setMovMotivo] = useState("");
+  const [movSenha, setMovSenha] = useState("");
+  const [erroMovimento, setErroMovimento] = useState("");
 
   const vendasDoCaixa = caixaAberto ? vendas.filter((v) => v.caixa_id === caixaAberto.id) : [];
   const totalVendasCaixa = vendasDoCaixa.reduce((s, v) => s + v.total, 0);
@@ -18,8 +23,11 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
     m[v.forma_pagamento] = (m[v.forma_pagamento] || 0) + v.total;
     return m;
   }, {});
+  const movimentosDoCaixa = caixaAberto ? (movimentos || []).filter((m) => m.caixa_id === caixaAberto.id) : [];
+  const totalSangrias = movimentosDoCaixa.filter((m) => m.tipo === "sangria").reduce((s, m) => s + Number(m.valor), 0);
+  const totalReforcos = movimentosDoCaixa.filter((m) => m.tipo === "reforco").reduce((s, m) => s + Number(m.valor), 0);
   const dinheiroEsperado = caixaAberto
-    ? Number(caixaAberto.valor_inicial) + (porForma["Dinheiro"] || 0)
+    ? Number(caixaAberto.valor_inicial) + (porForma["Dinheiro"] || 0) + totalReforcos - totalSangrias
     : 0;
 
   const historico = [...caixas].sort((a, b) => new Date(b.aberto_em) - new Date(a.aberto_em));
@@ -76,6 +84,31 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
     }
   };
 
+  const registrarMovimento = async () => {
+    setErroMovimento("");
+    const valor = Number(movValor);
+    if (!valor || valor <= 0) { setErroMovimento("Informe um valor válido."); return; }
+    if (!movSenha) { setErroMovimento("Digite sua senha de administrador pra confirmar."); return; }
+    setEnviando(true);
+    try {
+      const res = await fetch("/api/caixas/movimento", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caixaId: caixaAberto.id, tipo: formaMovimento, valor,
+          motivo: movMotivo, usuario: usuarioLogin, senha: movSenha,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setErroMovimento(data.erro || "Não foi possível registrar."); return; }
+      setFormaMovimento(null); setMovValor(""); setMovMotivo(""); setMovSenha("");
+      onAtualizar();
+    } catch {
+      setErroMovimento("Erro de conexão. Tente novamente.");
+    } finally {
+      setEnviando(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <button onClick={onAtualizar} className="text-xs flex items-center gap-1.5 font-medium" style={{ color: C.inkSoft }}>
@@ -118,6 +151,65 @@ export default function Caixa({ isAdmin, caixaAberto, caixas, vendas, nomeUsuari
           <div className="space-y-1 text-sm mb-4">
             <div className="flex justify-between font-medium"><span style={{ color: C.inkSoft }}>Dinheiro esperado na gaveta</span><span style={{ color: C.primaryDark }}>{money(dinheiroEsperado)}</span></div>
           </div>
+
+          {isAdmin && (
+            <div style={{ background: C.bg, border: `1px solid ${C.border}` }} className="rounded-lg p-3 mb-4">
+              <p className="text-xs font-medium mb-2 flex items-center gap-1" style={{ color: C.inkSoft }}>
+                <Lock size={11} /> Sangria / reforço (só admin, com senha)
+              </p>
+              {!formaMovimento ? (
+                <div className="flex gap-2">
+                  <button onClick={() => { setFormaMovimento("sangria"); setErroMovimento(""); }}
+                    className="flex-1 text-xs py-2 rounded-lg font-medium flex items-center justify-center gap-1"
+                    style={{ border: `1px solid ${C.border}`, color: C.berry }}>
+                    <Minus size={13} /> Sangria (retirar)
+                  </button>
+                  <button onClick={() => { setFormaMovimento("reforco"); setErroMovimento(""); }}
+                    className="flex-1 text-xs py-2 rounded-lg font-medium flex items-center justify-center gap-1"
+                    style={{ border: `1px solid ${C.border}`, color: C.primaryDark }}>
+                    <Plus size={13} /> Reforço (colocar)
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium" style={{ color: C.ink }}>
+                    {formaMovimento === "sangria" ? "Retirar dinheiro do caixa" : "Colocar dinheiro no caixa"}
+                  </p>
+                  <input type="number" placeholder="Valor" value={movValor} onChange={(e) => setMovValor(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ border: `1px solid ${C.border}`, color: C.ink }} />
+                  <input placeholder="Motivo (opcional)" value={movMotivo} onChange={(e) => setMovMotivo(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ border: `1px solid ${C.border}`, color: C.ink }} />
+                  <input type="password" placeholder="Sua senha de administrador" value={movSenha} onChange={(e) => setMovSenha(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ border: `1px solid ${C.border}`, color: C.ink }} />
+                  {erroMovimento && <p className="text-xs" style={{ color: C.berry }}>{erroMovimento}</p>}
+                  <div className="flex gap-2">
+                    <button onClick={registrarMovimento} disabled={enviando}
+                      style={{ background: formaMovimento === "sangria" ? C.berry : C.primary }}
+                      className="flex-1 text-white text-xs py-2 rounded-lg font-medium disabled:opacity-60">
+                      {enviando ? "Confirmando..." : "Confirmar"}
+                    </button>
+                    <button onClick={() => { setFormaMovimento(null); setMovValor(""); setMovMotivo(""); setMovSenha(""); setErroMovimento(""); }}
+                      className="text-xs px-3" style={{ color: C.inkSoft }}>Cancelar</button>
+                  </div>
+                </div>
+              )}
+              {movimentosDoCaixa.length > 0 && (
+                <div className="mt-3 pt-3 space-y-1" style={{ borderTop: `1px solid ${C.border}` }}>
+                  {movimentosDoCaixa.map((m) => (
+                    <div key={m.id} className="flex justify-between text-xs">
+                      <span style={{ color: C.inkSoft }}>
+                        {m.tipo === "sangria" ? "↓ Sangria" : "↑ Reforço"} — {m.feito_por}{m.motivo ? ` · ${m.motivo}` : ""}
+                      </span>
+                      <span style={{ color: m.tipo === "sangria" ? C.berry : C.primaryDark }} className="font-medium shrink-0 ml-2">
+                        {m.tipo === "sangria" ? "-" : "+"}{money(m.valor)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <label className="text-xs" style={{ color: C.inkSoft }}>Valor contado ao fechar</label>
           <input type="number" value={valorFechamento} onChange={(e) => setValorFechamento(e.target.value)}
             className="w-full mt-1 mb-3 px-3 py-2 rounded-xl outline-none text-sm" style={{ border: `1px solid ${C.border}`, color: C.ink }}
